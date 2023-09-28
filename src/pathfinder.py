@@ -34,7 +34,15 @@ class CallbackFunctor:
         np.savetxt(filename, sols)
 
 class Pathfinder:
-  # One path Pathfinder from an initial point init_point
+  #Find the best multivariate normal approximation encountered while maximizing a log density.
+
+ # From an optimization trajectory from an initial point init_point, Pathfinder constructs a sequence of (multivariate normal)
+ # approximations to the distribution specified by a log density function. The approximation
+ # that maximizes the evidence lower bound (ELBO), or equivalently, minimizes the KL divergence
+ # between the approximation and the true distribution, is returned.
+
+ # The covariance of the multivariate normal distribution is an inverse Hessian approximation
+ # constructed using at most the previous `history_length` steps.
    
   def __init__(self, 
                init_point: VectorType,
@@ -42,7 +50,7 @@ class Pathfinder:
                fn:  DensityFunction,
                grad: GradModel,
                number_iter: int,
-               explore_hmc_from_initial: bool, #logical; if TRUE, generate Hamiltonian search path from initials and reinitialize 
+               explore_hmc_from_initial: bool, # if TRUE, generate Hamiltonian search path from initials and reinitialize 
                #the Pathfinder randomly along the search path
                seed: Optional[Seed] = None):
     self._init_point = init_point
@@ -106,6 +114,8 @@ class Pathfinder:
       y= np.c_[X,F]
 
       list_flags = [self.check_condition(Ykt[i,:], Skt[i,:]) for i in range(num_iter)]
+      list_true_cond = np.where(list_flags)
+
 
       # estimate DIV for all approximating Gaussians and save results
 
@@ -140,6 +150,21 @@ class Pathfinder:
          return True
     
     
+  def build_init_diag_inv_hessian(E0, update_theta, update_grad):
+  
+    #' Form the initial diagonal inverse Hessian in the L-BFGS update 
+    #' 
+    #' @param E0       initial diagonal inverse Hessian before updated
+    #' @param update_theta       update in parameters 
+    #' @param update_grad      update in gradient 
+    #' 
+    #' @return 
+  
+    Dk = sum(update_theta * update_grad)
+    thetak = sum(update_theta**2) / Dk   
+    a = (sum(E0 * update_theta**2) / Dk)
+    E = 1 / (a / E0 + update_theta**2 / Dk - a * (update_grad / E0)^2 / sum(update_grad**2 / E0))
+    return E
 
 
 
