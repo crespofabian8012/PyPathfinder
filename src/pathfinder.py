@@ -13,6 +13,26 @@ import hmc
 DensityFunction = Callable[[VectorType], float]
 Kernel = Callable[[VectorType, DensityFunction], ArrayLike]
 
+class CallbackFunctor:
+    def __init__(self, obj_f_and_grad):
+        self.intermediate_fun_vals = []
+        self.intermediate_sols = []
+        self.intermediate_grad_vals = []
+        self.num_calls = 0
+        self.obj_fun_grad = obj_f_and_grad
+      
+    
+    def __call__(self, x):
+        fun_val, grad_val = self.obj_fun_grad(x)
+        self.num_calls += 1
+        self.intermediate_sols.append(x)
+        self.intermediate_fun_vals.append(fun_val)
+        self.intermediate_grad_vals.append(grad_val)
+   
+    def save_sols(self, filename):
+        sols = np.array([sol for sol in self.intermediate_sols])
+        np.savetxt(filename, sols)
+
 class Pathfinder:
   # One path Pathfinder from an initial point init_point
    
@@ -35,6 +55,9 @@ class Pathfinder:
     self._number_iter = number_iter
     self._num_fn_eval = 0
     self._num_grad_eval = 0
+    def f_and_grad(x):
+      return (fn(x), grad(x))
+    self._f_and_grad= f_and_grad
   
     self._explore_hmc_from_initial = explore_hmc_from_initial
   
@@ -50,24 +73,42 @@ class Pathfinder:
     self._init_point = theta
     self._logp = logp
 
-  def optim_path(self) -> VectorType:
+  def optim_path(self, method= "L-BFGS-B") -> VectorType:
+    # or method ='L-BFGS-B', "trust-ncg", ‘Nelder-Mead’, ‘trust-exact’ ,‘trust-constr’,‘trust-krylov’
 
     if (self._explore_hmc_from_initial):
-      #run HMC and take the initil point as the result os HMC sampling 
-      update_init_from_hmc(stepsize = 0.005, steps = 800 )
+        self.update_init_from_hmc(stepsize = 0.005, steps = 800 )
     else:
       Y = 	np.empty((1, self._n_dim +1),float)
-      Y[1, ] = self._init_point
+      Y[1, :] = self._init_point
       init_grad = self._grad(self._init_point)
       
       if (np.isnan(init_grad).any()):
-        Y[1, ] = self.reinitialize()
-      
-      opt_result = sp.optimize.maximize(fun = (self._fn, self._grad), x0 = self._init_point, method ='L-BFGS-B', 
+        Y[1, : ] = self.reinitialize()
+
+      cb = CallbackFunctor(self._f_and_grad)
+      opt_result = sp.optimize.maximize(fun = self._fn_and_grad, x0 = self._init_point, method = method.
                            jac = True,  
-                           tol = 0.00001,  options = {'xatol': 1e-8,'maxiter': self._number_iter,'disp': True}})
+                           tol = 0.00001,  options = {'xatol': 1e-8,'maxiter': self._number_iter,'disp': True}}, callbacl = cb)
       
-      opt_trajectory = opt_result.x
+      print(opt_result.message)
+      opt_trajectory = cb.intermediate_sols
+      num_iter = len(cb.intermediate_sols)
+     
+
+      X =  np.asmatrix(np.reshape(cb.intermediate_sols, (len(cb.intermediate_sols),self._n_dim)))#intermediate points 
+      G = np.asmatrix(np.reshape(cb.intermediate_grad_vals, (len(cb.intermediate_grad_vals),self._n_dim)))#intermediate gradients vectors
+      F = np.asmatrix(np.reshape(cb.intermediate_fun_vals, (len(cb.intermediate_fun_vals),1)))#intermediate function vals 
+      
+      Ykt = X[2:, :] - X[:-1,:]
+      Skt = G[2:, :] - G[:-1,:]
+
+      y= np.c_[X,F]
+
+      list_flags = [self.check_condition(Ykt[i,:], Skt[i,:]) for i in range(num_iter)]
+
+      # estimate DIV for all approximating Gaussians and save results
+
       
       self._num_fn_eval, self._num_grad_eval =  opt_result.nfev, opt_result.njev, opt_result.nhevint
       return (opt_trajectory,opt_result.fun, opt_result.jac, opt_result.hess )
@@ -84,15 +125,21 @@ class Pathfinder:
         LBFGS_fail = True
     return proposal
 
-  def check_codition(Yk,
-                      Sk)-> bool:
+  def check_condition(update_theta,
+                      update_grad)-> bool:
     #' check whether the updates of the optimization path should be used in the 
     #' inverse Hessian estimation or not
-    Dk = sum(Yk * Sk)
+    Dk = sum(update_theta * update_grad)
     if (Dk == 0):
       return False
     else:
-      #TODO 
+       thetak = sum(update_theta**2) / Dk  # curvature checking
+       if((Dk <= 0) or  (abs(thetak) > 1e12)):
+         return False
+       else:
+         return True
+    
+    
 
 
 

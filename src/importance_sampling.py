@@ -5,10 +5,11 @@ from typing import Iterator, Optional
 from .typing import LogDensityModel
 from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
-class N3_mult_IS:
+class ImportanceSampling:
      
 
-    def __init__(self, 
+    def __init__(self,
+                 target_distrib, 
                  list_proposal_distrib: list,
                  seed: Optional[Seed] = None,
                  use_Pareto_smoothing: bool = False
@@ -18,7 +19,7 @@ class N3_mult_IS:
       self._rng = np.random.default_rng(seed)
 
     def sample() -> VectorType:
-       
+       pass
       #TODO
       #use rng to resample from proposal distributions
       
@@ -28,12 +29,13 @@ class N3_mult_IS:
           
         ) -> VectorType:
         #TODO
-      weights = np.exp(
-      np.apply_along_axis(lp, axis=1, arr=thetas)
-        - np.apply_along_axis(lpminus1, axis=1, arr=thetas)
-        )
-        M = thetas.shape[0]
-      # TODO(bward): should use random Generator object
-      idxs = np.random.choice(M, size=M, replace=True, p=weights / weights.sum())
+        pass
+      # weights = np.exp(
+      # np.apply_along_axis(lp, axis=1, arr=thetas)
+      #   - np.apply_along_axis(lpminus1, axis=1, arr=thetas)
+      #   )
+      #   M = thetas.shape[0]
+      # # TODO(bward): should use random Generator object
+      # idxs = np.random.choice(M, size=M, replace=True, p=weights / weights.sum())
 
-      return thetas[idxs]  # type: ignore
+      #return thetas[idxs]  # type: ignore
