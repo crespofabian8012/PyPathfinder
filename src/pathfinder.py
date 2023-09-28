@@ -115,7 +115,10 @@ class Pathfinder:
 
       list_flags = [self.check_condition(Ykt[i,:], Skt[i,:]) for i in range(num_iter)]
       list_true_cond = np.where(list_flags)
-
+      E0 = np.ones(self._n_dim)
+      list_init_diag_inv_hessian = [self.build_init_diag_inv_hessian(E0, Ykt[i,:], Skt[i,:]) for i in list_true_cond[0]]
+      
+      
 
       # estimate DIV for all approximating Gaussians and save results
 
