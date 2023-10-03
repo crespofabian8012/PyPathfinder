@@ -2,8 +2,8 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Iterator, Optional
 
-from .typing import LogDensityModel
-from .typing import DrawAndLogP, GradModel, Seed, VectorType
+from .costum_typing import LogDensityModel
+from .costum_typing import DrawAndLogP, GradModel, Seed, VectorType
 
 class ImportanceSampling:
      

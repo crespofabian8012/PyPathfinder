@@ -2,7 +2,7 @@ from typing import Iterator, Optional
 
 import numpy as np
 
-from .typing import DrawAndLogP, GradModel, Seed, VectorType
+from costum_typing import DrawAndLogP, GradModel, Seed, VectorType
 
 
 class HMCDiag:

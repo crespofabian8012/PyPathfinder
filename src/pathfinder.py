@@ -1,17 +1,23 @@
 import numpy as np
 import scipy  as sp
+
 from numpy.typing import NDArray
+from numpy.typing import ArrayLike
+from typing import Callable, Iterator
 from typing import Iterator, Optional
 
-from .typing import LogDensityModel
-from .typing import DrawAndLogP, GradModel, Seed, VectorType
-from typing import Callable, Iterator
-from numpy.typing import ArrayLike
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
+from costum_typing import  GradModel, Seed, VectorType
 from scipy import optimize
 import hmc
 
 DensityFunction = Callable[[VectorType], float]
 Kernel = Callable[[VectorType, DensityFunction], ArrayLike]
+
 
 class CallbackFunctor:
     def __init__(self, obj_f_and_grad):
@@ -47,26 +53,20 @@ class Pathfinder:
   def __init__(self, 
                init_point: VectorType,
                init_bound: float,#initial bound of random initials for each dimension
-               fn:  DensityFunction,
-               grad: GradModel,
+               log_density_grad: GradModel,
                number_iter: int,
                explore_hmc_from_initial: bool, # if TRUE, generate Hamiltonian search path from initials and reinitialize 
                #the Pathfinder randomly along the search path
                seed: Optional[Seed] = None):
     self._init_point = init_point
     self._n_dim = init_point.shape[0]
-    self._fn = fn
-    self._grad = grad
+    self._log_density_grad = log_density_grad
     self._seed = seed
     self._rng = np.random.default_rng(seed)
     self._init_bound = init_bound
     self._number_iter = number_iter
     self._num_fn_eval = 0
     self._num_grad_eval = 0
-    def f_and_grad(x):
-      return (fn(x), grad(x))
-    self._f_and_grad= f_and_grad
-  
     self._explore_hmc_from_initial = explore_hmc_from_initial
   
 
@@ -81,50 +81,73 @@ class Pathfinder:
     self._init_point = theta
     self._logp = logp
 
-  def optim_path(self, method= "L-BFGS-B") -> VectorType:
+  def optim_path(self, method= "L-BFGS-B"):
     # or method ='L-BFGS-B', "trust-ncg", ‘Nelder-Mead’, ‘trust-exact’ ,‘trust-constr’,‘trust-krylov’
 
     if (self._explore_hmc_from_initial):
         self.update_init_from_hmc(stepsize = 0.005, steps = 800 )
     else:
-      Y = 	np.empty((1, self._n_dim +1),float)
-      Y[1, :] = self._init_point
-      init_grad = self._grad(self._init_point)
+      print(self._n_dim )
+      Y = 	np.zeros((1, self._n_dim +1))
+    
       
-      if (np.isnan(init_grad).any()):
-        Y[1, : ] = self.reinitialize()
+      Y[0][0:self._n_dim] = self._init_point
+      
+      init_log_dens, init_grad = self._log_density_grad(self._init_point, jacobian=False)
+     
 
-      cb = CallbackFunctor(self._f_and_grad)
-      opt_result = sp.optimize.maximize(fun = self._fn_and_grad, x0 = self._init_point, method = method.
-                           jac = True,  
-                           tol = 0.00001,  options = {'xatol': 1e-8,'maxiter': self._number_iter,'disp': True}}, callbacl = cb)
+      if (np.isnan(init_grad).any()):
+        Y[0][0:self._n_dim] = self.reinitialize()
+
+      def minus_log_density_grad(x):
+           log_dens, log_grad = self._log_density_grad(x, jacobian=False)
+           return(-log_dens, -log_grad)
       
+      print(init_log_dens)
+      print(init_grad)
+      print("---------")
+      init_tuple = minus_log_density_grad(self._init_point)
+      print(init_tuple[0])
+      print(init_tuple[1])
+      print("paso2")
+      cb = CallbackFunctor(minus_log_density_grad)
+      print("paso3")
+      opt_result = sp.optimize.minimize(fun = minus_log_density_grad, x0 = self._init_point, method = method,
+                           jac = True,  
+                           tol = 0.00001,  options = {'maxiter': self._number_iter,'disp': True}, callback = cb)
+      
+      print("paso4")
       print(opt_result.message)
       opt_trajectory = cb.intermediate_sols
       num_iter = len(cb.intermediate_sols)
      
-
+      print("paso5")
       X =  np.asmatrix(np.reshape(cb.intermediate_sols, (len(cb.intermediate_sols),self._n_dim)))#intermediate points 
       G = np.asmatrix(np.reshape(cb.intermediate_grad_vals, (len(cb.intermediate_grad_vals),self._n_dim)))#intermediate gradients vectors
       F = np.asmatrix(np.reshape(cb.intermediate_fun_vals, (len(cb.intermediate_fun_vals),1)))#intermediate function vals 
-      
-      Ykt = X[2:, :] - X[:-1,:]
-      Skt = G[2:, :] - G[:-1,:]
+      print("paso5.5")
+      Ykt = X[1:, :] - X[:-1,:]
+      Skt = G[1:, :] - G[:-1,:]
 
+      print("--------")
+      print(Ykt)
+
+      print("--------")
+      print(Skt)
+      print("paso6")
       y= np.c_[X,F]
 
       list_flags = [self.check_condition(Ykt[i,:], Skt[i,:]) for i in range(num_iter)]
       list_true_cond = np.where(list_flags)
       E0 = np.ones(self._n_dim)
       list_init_diag_inv_hessian = [self.build_init_diag_inv_hessian(E0, Ykt[i,:], Skt[i,:]) for i in list_true_cond[0]]
-      
-      
-
-      # estimate DIV for all approximating Gaussians and save results
-
+      lmm = 6
+      Ykt_history = [Ykt[i,:] for i in list_true_cond[0]]
+      Skt_history = [Skt[i,:] for i in list_true_cond[0]]
+      print("paso7")
       
       self._num_fn_eval, self._num_grad_eval =  opt_result.nfev, opt_result.njev, opt_result.nhevint
-      return (opt_trajectory,opt_result.fun, opt_result.jac, opt_result.hess )
+      return (X, G, F, Ykt_history, Skt_history )
 
 
   def reinitialize(max_ntries= 30):
@@ -133,12 +156,12 @@ class Pathfinder:
 
     while(LBFGS_fail &  current_try < max_ntries ):
       proposal =  -1*self._init_bound + 2*self._init_bound* np.random.random(self._n_dim) 
-      prop_grad = self._grad(proposal)
+      prop_theta, prop_grad = self._log_density_grad(proposal)
       if (np.isnan(prop_grad).any()):
         LBFGS_fail = True
     return proposal
 
-  def check_condition(update_theta,
+  def check_condition(self, update_theta,
                       update_grad)-> bool:
     #' check whether the updates of the optimization path should be used in the 
     #' inverse Hessian estimation or not
@@ -153,7 +176,7 @@ class Pathfinder:
          return True
     
     
-  def build_init_diag_inv_hessian(E0, update_theta, update_grad):
+  def build_init_diag_inv_hessian(self, E0, update_theta, update_grad):
   
     #' Form the initial diagonal inverse Hessian in the L-BFGS update 
     #' 
@@ -169,7 +192,23 @@ class Pathfinder:
     E = 1 / (a / E0 + update_theta**2 / Dk - a * (update_grad / E0)^2 / sum(update_grad**2 / E0))
     return E
 
+def updateYS(self, Ykt_h, Ykt, lmm):
+  
+  #' update the matrix for storing history of updates along optimization opath
+  #' 
+  #' @param Ykt_h    history of updates 
+  #' @param Ykt      latest update 
+  #' @param lmm      The size of history
+  #' 
+  #' @return
+  
+  if(Ykt_h is None):
+    Ykt_h = np.matrix(Ykt)# nrow = 1
+  elif(Ykt_h.size[0] == lmm):
+    Ykt_h =  np.asmatrix(np.concatenate((Ykt_h[:-1,: ], Ykt), axis=0))
+  else:
+    Ykt_h = np.asmatrix(np.concatenate((Ykt_h, Ykt), axis=0))
+  
+  return Ykt_h
 
 
-
- 
