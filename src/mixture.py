@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from costum_typing import  GradModel, Seed, VectorType
 import random
 
-class GaussianApproxDistrib:
+class PathMixture:
 
     def __init__(self,
                 n_dim: int,
