@@ -40,7 +40,7 @@ class CallbackFunctor:
         np.savetxt(filename, sols)
 
 class Pathfinder:
-  #Find the best multivariate normal approximation encountered while maximizing a log density.
+ '''Find the best multivariate normal approximation encountered while maximizing a log density.
 
  # From an optimization trajectory from an initial point init_point, Pathfinder constructs a sequence of (multivariate normal)
  # approximations to the distribution specified by a log density function. The approximation
@@ -49,7 +49,7 @@ class Pathfinder:
 
  # The covariance of the multivariate normal distribution is an inverse Hessian approximation
  # constructed using at most the previous `history_length` steps.
-   
+ '''
   def __init__(self, 
                init_point: VectorType,
                init_bound: float,#initial bound of random initials for each dimension
@@ -187,23 +187,6 @@ class Pathfinder:
     E = 1 / (a / E0 + update_theta**2 / Dk - a * (update_grad / E0)**2 / sum(update_grad**2 / E0))
     return E
 
-def updateYS(self, Ykt_h, Ykt, lmm):
-  
-  #' update the matrix for storing history of updates along optimization opath
-  #' 
-  #' @param Ykt_h    history of updates 
-  #' @param Ykt      latest update 
-  #' @param lmm      The size of history
-  #' 
-  #' @return
-  
-  if(Ykt_h is None):
-    Ykt_h = np.matrix(Ykt)# nrow = 1
-  elif(Ykt_h.size[0] == lmm):
-    Ykt_h =  np.asmatrix(np.concatenate((Ykt_h[:-1,: ], Ykt), axis=0))
-  else:
-    Ykt_h = np.asmatrix(np.concatenate((Ykt_h, Ykt), axis=0))
-  
-  return Ykt_h
+
 
 

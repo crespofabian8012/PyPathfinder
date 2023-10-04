@@ -10,5 +10,5 @@ import sys
 sys.path.append(os.path.join(Path(__file__).parent.parent, "src"))
 
 from typing import Any
-from  mixture import GaussianApproxDistrib
+from  mixture import PathMixture
 from  mixture import  Mixture
