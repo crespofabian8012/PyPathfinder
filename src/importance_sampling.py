@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 from typing import Iterator, Optional
+from typing import List, Optional, Tuple
 
 from .costum_typing import LogDensityModel
 from .costum_typing import DrawAndLogP, GradModel, Seed, VectorType
@@ -10,7 +11,7 @@ class ImportanceSampling:
 
     def __init__(self,
                  target_distrib, 
-                 list_proposal_distrib: list,
+                 list_proposal_distrib: List,
                  seed: Optional[Seed] = None,
                  use_Pareto_smoothing: bool = False
                  ):

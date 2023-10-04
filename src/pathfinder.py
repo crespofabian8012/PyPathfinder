@@ -68,6 +68,11 @@ class Pathfinder:
     self._num_fn_eval = 0
     self._num_grad_eval = 0
     self._explore_hmc_from_initial = explore_hmc_from_initial
+
+    def minus_log_density_grad(x):
+        log_dens, log_grad = self._log_density_grad(x, jacobian=False)
+        return (-log_dens, -log_grad)
+    self._minus_log_density_grad = minus_log_density_grad
   
 
   def update_init_from_hmc(self, stepsize, steps):
@@ -87,7 +92,7 @@ class Pathfinder:
     if (self._explore_hmc_from_initial):
         self.update_init_from_hmc(stepsize = 0.005, steps = 800 )
     else:
-      print(self._n_dim )
+
       Y = 	np.zeros((1, self._n_dim +1))
     
       
@@ -99,55 +104,45 @@ class Pathfinder:
       if (np.isnan(init_grad).any()):
         Y[0][0:self._n_dim] = self.reinitialize()
 
-      def minus_log_density_grad(x):
-           log_dens, log_grad = self._log_density_grad(x, jacobian=False)
-           return(-log_dens, -log_grad)
+
+      init_tuple = self._minus_log_density_grad(self._init_point)
       
-      print(init_log_dens)
-      print(init_grad)
-      print("---------")
-      init_tuple = minus_log_density_grad(self._init_point)
-      print(init_tuple[0])
-      print(init_tuple[1])
-      print("paso2")
-      cb = CallbackFunctor(minus_log_density_grad)
-      print("paso3")
-      opt_result = sp.optimize.minimize(fun = minus_log_density_grad, x0 = self._init_point, method = method,
+
+      cb = CallbackFunctor(self._minus_log_density_grad)
+
+      opt_result = sp.optimize.minimize(fun = self._minus_log_density_grad, x0 = self._init_point, method = method,
                            jac = True,  
                            tol = 0.00001,  options = {'maxiter': self._number_iter,'disp': True}, callback = cb)
       
-      print("paso4")
-      print(opt_result.message)
+
       opt_trajectory = cb.intermediate_sols
+
       num_iter = len(cb.intermediate_sols)
      
-      print("paso5")
+
       X =  np.asmatrix(np.reshape(cb.intermediate_sols, (len(cb.intermediate_sols),self._n_dim)))#intermediate points 
       G = np.asmatrix(np.reshape(cb.intermediate_grad_vals, (len(cb.intermediate_grad_vals),self._n_dim)))#intermediate gradients vectors
       F = np.asmatrix(np.reshape(cb.intermediate_fun_vals, (len(cb.intermediate_fun_vals),1)))#intermediate function vals 
-      print("paso5.5")
+
       Ykt = X[1:, :] - X[:-1,:]
       Skt = G[1:, :] - G[:-1,:]
 
-      print("--------")
-      print(Ykt)
-
-      print("--------")
-      print(Skt)
-      print("paso6")
       y= np.c_[X,F]
 
-      list_flags = [self.check_condition(Ykt[i,:], Skt[i,:]) for i in range(num_iter)]
+      list_flags = [self.check_condition( np.squeeze(np.asarray(Ykt[i,:])),  np.squeeze(np.asarray(Skt[i,:]))) for i in range(Ykt.shape[0])]
+
       list_true_cond = np.where(list_flags)
       E0 = np.ones(self._n_dim)
-      list_init_diag_inv_hessian = [self.build_init_diag_inv_hessian(E0, Ykt[i,:], Skt[i,:]) for i in list_true_cond[0]]
+
+      list_init_diag_inv_hessian = [self.build_init_diag_inv_hessian(E0,   np.squeeze(np.asarray(Ykt[i,:])),  np.squeeze(np.asarray(Skt[i,:]))) for i in list_true_cond[0]]
       lmm = 6
-      Ykt_history = [Ykt[i,:] for i in list_true_cond[0]]
-      Skt_history = [Skt[i,:] for i in list_true_cond[0]]
-      print("paso7")
-      
-      self._num_fn_eval, self._num_grad_eval =  opt_result.nfev, opt_result.njev, opt_result.nhevint
-      return (X, G, F, Ykt_history, Skt_history )
+
+      Ykt_history = [np.squeeze(np.asarray(Ykt[i,:])) for i in list_true_cond[0]]
+      Skt_history = [ np.squeeze(np.asarray(Skt[i,:])) for i in list_true_cond[0]]
+
+
+
+      return (X[list_true_cond[0], :], G[list_true_cond[0], :], F[list_true_cond[0], :], Ykt_history, Skt_history )
 
 
   def reinitialize(max_ntries= 30):
@@ -189,7 +184,7 @@ class Pathfinder:
     Dk = sum(update_theta * update_grad)
     thetak = sum(update_theta**2) / Dk   
     a = (sum(E0 * update_theta**2) / Dk)
-    E = 1 / (a / E0 + update_theta**2 / Dk - a * (update_grad / E0)^2 / sum(update_grad**2 / E0))
+    E = 1 / (a / E0 + update_theta**2 / Dk - a * (update_grad / E0)**2 / sum(update_grad**2 / E0))
     return E
 
 def updateYS(self, Ykt_h, Ykt, lmm):

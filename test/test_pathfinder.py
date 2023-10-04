@@ -59,19 +59,40 @@ class TestPathfinder:
     parent_path =Path(__file__).parent
     funnel100_dir = os.path.join(parent_path.parent , 'example', 'funnel100')
     stan_file = os.path.join(funnel100_dir, 'funnel100.stan')
+   
+    my_file = Path(stan_file)
     
-    bs_model = bs.StanModel.from_stan_file(stan_file, model_data = None)
+    try:
+      bs_model = bs.StanModel.from_stan_file(stan_file, model_data = None)
+    
+    except Exception as e: 
+      print(e)
+      print("Error opening the stan file or it doesnt exist!")
+      stan_code ="""
+               parameters {
+                  real log_sigma;
+                  vector[99] alpha;
+                 }
+               model {
+                 log_sigma ~ normal(0, 3);
+                 alpha ~ normal(0, exp(log_sigma / 2));
+                }
+                """
+      stan_file_path = os.path.join(funnel100_dir, 'temp_stan.stan')
+      temp_file = open(stan_file_path, "w")
+      temp_file.write( stan_code + '\n' )
+      temp_file.close()
+      bs_model = bs.StanModel.from_stan_file(stan_file_path, model_data = None)
+
+       
+
     num_param = bs_model.param_num()
 
     theta_unc = init_theta
     lp, grad = bs_model.log_density_gradient(theta_unc, jacobian=False)
-    
-    print("grad")
-    print(grad)
+
     grad1 = np.full(shape=num_param, fill_value=-0.3678794, dtype=np.float16) 
     grad1 = np.append(-31.4010788, grad1)
-    print("grad1")
-    print(grad1)
     
     #np.testing.assert_array_almost_equal(grad, grad1)
   
@@ -93,5 +114,6 @@ class TestPathfinder:
 
     print("F=")
     print(F)
-
+    
+#test_pathfinder_path()
 

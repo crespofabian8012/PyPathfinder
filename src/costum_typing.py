@@ -3,6 +3,7 @@ from typing import Protocol, Sequence, Tuple, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+#taking from Bayes-kit repo(https://github.com/flatironinstitute/bayes-kit)
 # Generic types used in most modules
 FloatType = np.float64
 IntType = np.int64
