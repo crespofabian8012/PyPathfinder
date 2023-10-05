@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from costum_typing import  GradModel, Seed, VectorType
 import random
 
-class PathApproximations:
+class PathApproximation:
 
     def __init__(self,
                 n_dim: int,
@@ -22,16 +22,16 @@ class PathApproximations:
       self._trajectory_length = len(Ykts)
       self._minus_log_density_grad = minus_log_density_grad
 
-      self._list_sample_info = self.init()
+      self._list_sample_info = self.init_approximations()
       self._list_sample_DIV= self.estimate_div()
 
-    def init(self) -> List[dict]:
-        list_dicts = [self.init_one_sample(self._Ykts[i], i) for i in range(self._trajectory_length) ]
+    def init_approximations(self) -> List[dict]:
+        list_dicts = [self.init_approximation_on_position( i) for i in range(self._trajectory_length) ]
         return list_dicts
 
-    def init_one_sample(self, x_center,  num_previous_points) -> dict:
+    def init_approximation_on_position(self,  num_previous_points) -> dict:
 
-
+        x_center = self._Ykts[i]
         Ykts = self._Ykts[0:num_previous_points]
         Skts = self._Skts[0:num_previous_points]
         m = len(Ykts)
@@ -100,7 +100,7 @@ class PathApproximations:
                 "theta_D": theta_D
                 }
 
-    def estimate_div_for_one_sample(self, sample_pos, n_samples = 5) -> dict:
+    def estimate_div_for_approximation_on_pos(self, sample_pos, n_samples = 5) -> dict:
         # ' estimate divergence based on Monte Carlo samples given the output of
 
        repeat_draws  = np.zeros((self._n_dim, n_samples))
@@ -156,12 +156,9 @@ class PathApproximations:
     def estimate_div(self,
                      n_samples: int) -> List[dict]:
 
-        list_dicts = [self.estimate_div_for_one_sample( i) for i in range(self._trajectory_length)]
+        list_dicts = [self.estimate_div_for_approximation_on_pos( i) for i in range(self._trajectory_length)]
         return list_dicts
 
-    # list_init_diag_inv_hessian = [
-    #     self.build_init_diag_inv_hessian(E0, np.squeeze(np.asarray(Ykt[i, :])), np.squeeze(np.asarray(Skt[i, :]))) for i
-    #     in list_true_cond[0]]
 
     def build_init_diag_inv_hessian(self, E0, update_theta, update_grad):
 
