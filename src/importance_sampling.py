@@ -19,24 +19,12 @@ class ImportanceSampling:
       self._N = list_proposal_distrib.shape[0]
       self._rng = np.random.default_rng(seed)
 
-    def sample() -> VectorType:
+    def sample(self) -> VectorType:
        pass
       #TODO
       #use rng to resample from proposal distributions
       
 
 
-    def importance_resample(
-          
-        ) -> VectorType:
-        #TODO
+    def importance_resample(self) -> VectorType:
         pass
-      # weights = np.exp(
-      # np.apply_along_axis(lp, axis=1, arr=thetas)
-      #   - np.apply_along_axis(lpminus1, axis=1, arr=thetas)
-      #   )
-      #   M = thetas.shape[0]
-      # # TODO(bward): should use random Generator object
-      # idxs = np.random.choice(M, size=M, replace=True, p=weights / weights.sum())
-
-      #return thetas[idxs]  # type: ignore

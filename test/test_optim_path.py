@@ -12,14 +12,14 @@ import sys
 sys.path.append(os.path.join(Path(__file__).parent.parent, "src"))
 
 from typing import Any
-from  pathfinder import Pathfinder
+from  optimization_path import OptimPath
 
 CURRENT_DIR = os.path.realpath(os.path.dirname(__file__))
 
-class TestPathfinder:
+class TestOptimPath:
 
   
-  def test_creation_pathfinder_funnel100(self):
+  def test_creation_optim_path_funnel100(self):
     #bs.set_bridgestan_path("C:\\Users\\FC7458\\.bridgestan\\bridgestan-2.2.0")
     #set BRIDGESTAN="C:\Users\FC7458\Downloads\bridgestan\"
     init_bound = 10.0 
@@ -39,7 +39,7 @@ class TestPathfinder:
     lp, grad = bs_model.log_density_gradient(theta_unc, jacobian=False)
    
    
-    pathfinder = Pathfinder(
+    pathfinder = OptimPath(
                  init_point = init_theta,
                  init_bound = init_bound,
                  log_density_grad = bs_model.log_density_gradient,
@@ -51,7 +51,7 @@ class TestPathfinder:
     np.testing.assert_equal(pathfinder._init_bound, init_bound)
     
 
-  def test_pathfinder_path(self):
+  def test_optim_path(self):
     init_bound = 10.0 
     #init_theta =  -1*init_bound + 2*init_bound* np.random.random(100)
     init_theta = np.ones(100)# 461 steps from this initial point in R code
@@ -97,7 +97,7 @@ class TestPathfinder:
     #np.testing.assert_array_almost_equal(grad, grad1)
   
    
-    pathfinder = Pathfinder(
+    pathfinder = OptimPath(
                  init_point = init_theta,
                  init_bound = init_bound,
                  log_density_grad = bs_model.log_density_gradient,
