@@ -70,7 +70,8 @@ class OptimPath:
 
         self._minus_log_density_grad = minus_log_density_grad
   
-
+    def get_objective_function_grad(self):
+         return  self._minus_log_density_grad
     def update_init_from_hmc(self, stepsize, steps):
         hmc =  hmc(model= self._log_density_grad,
                 stepsize = stepsize,
@@ -91,7 +92,7 @@ class OptimPath:
 
             Y = 	np.zeros((1, self._n_dim +1))
             Y[0][0:self._n_dim] = self._init_point
-            init_log_dens, init_grad = self._log_density_grad(self._init_point, jacobian=False)
+            init_log_dens, init_grad = self._minus_log_density_grad(self._init_point)
 
             if (np.isnan(init_grad).any()):
                 Y[0][0:self._n_dim] = self.reinitialize()
@@ -109,7 +110,14 @@ class OptimPath:
 
             X =  np.asmatrix(np.reshape(cb.intermediate_sols, (len(cb.intermediate_sols),self._n_dim)))#intermediate points
             G = np.asmatrix(np.reshape(cb.intermediate_grad_vals, (len(cb.intermediate_grad_vals),self._n_dim)))#intermediate gradients vectors
-            F = np.asmatrix(np.reshape(cb.intermediate_fun_vals, (len(cb.intermediate_fun_vals),1)))#intermediate function vals
+
+            fun_vals = cb.intermediate_fun_vals
+            fun_vals = [init_log_dens] + fun_vals
+            F = np.asmatrix(np.reshape(fun_vals, (len(fun_vals),1)))#intermediate function vals
+
+            X = np.concatenate((np.matrix(self._init_point), X))
+            G = np.concatenate((np.matrix(init_grad), G))
+
 
             Ykt = X[1:, :] - X[:-1,:]
             Skt = G[1:, :] - G[:-1,:]
@@ -124,7 +132,7 @@ class OptimPath:
             Ykt_history = [np.squeeze(np.asarray(Ykt[i,:])) for i in list_true_cond[0]]
             Skt_history = [ np.squeeze(np.asarray(Skt[i,:])) for i in list_true_cond[0]]
 
-            return (X[list_true_cond[0], :], G[list_true_cond[0], :], F[list_true_cond[0], :], Ykt_history, Skt_history )
+            return (X, G, F, Ykt_history, Skt_history, list_flags )
 
 
     def reinitialize(self, max_ntries= 30):

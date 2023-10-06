@@ -54,7 +54,7 @@ class TestOptimPath:
   def test_optim_path(self):
     init_bound = 10.0 
     #init_theta =  -1*init_bound + 2*init_bound* np.random.random(100)
-    init_theta = np.ones(100)# 461 steps from this initial point in R code
+    init_theta = np.ones(100)
     
     parent_path =Path(__file__).parent
     funnel100_dir = os.path.join(parent_path.parent , 'example', 'funnel100')
@@ -84,8 +84,6 @@ class TestOptimPath:
       temp_file.close()
       bs_model = bs.StanModel.from_stan_file(stan_file_path, model_data = None)
 
-       
-
     num_param = bs_model.param_num()
 
     theta_unc = init_theta
@@ -95,8 +93,7 @@ class TestOptimPath:
     grad1 = np.append(-31.4010788, grad1)
     
     #np.testing.assert_array_almost_equal(grad, grad1)
-  
-   
+
     pathfinder = OptimPath(
                  init_point = init_theta,
                  init_bound = init_bound,
@@ -105,7 +102,7 @@ class TestOptimPath:
                  explore_hmc_from_initial = False,
                  seed = 12345)
     
-    X, G, F, Ykt_history, Skt_history = pathfinder.optim_path()
+    X, G, F, Ykt_history, Skt_history,list_true_cond = pathfinder.optim_path()
     print("X=")
     print(X)
 
@@ -114,6 +111,4 @@ class TestOptimPath:
 
     print("F=")
     print(F)
-    
-#test_pathfinder_path()
 
