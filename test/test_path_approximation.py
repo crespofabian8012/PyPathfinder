@@ -19,7 +19,7 @@ CURRENT_DIR = os.path.realpath(os.path.dirname(__file__))
 class TestPathApproximation:
 
 
-    def test_creation_optim_path_funnel100(self):
+    def test_path_approx_funnel100(self):
         n_dim = 100
         init_bound = 10.0
         init_theta = np.ones(n_dim)
@@ -38,11 +38,10 @@ class TestPathApproximation:
             seed=12345)
         X, G, F, Ykt_history, Skt_history, list_flags  = path.optim_path()
         objective_fun = path.get_objective_function_grad()
-        print("before")
+
         path_approx = PathApproximation(n_dim= n_dim,
                                         x_centers = X,
                                         minus_log_density_grad= objective_fun,
                                         Ykts = Ykt_history,
                                         Skts = Skt_history,
                                         list_flags = list_flags)
-        print("after")
