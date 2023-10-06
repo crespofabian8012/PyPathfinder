@@ -3,8 +3,8 @@ import scipy  as sp
 
 from numpy.typing import NDArray
 from numpy.typing import ArrayLike
-from typing import Callable, Iterator
-from typing import Iterator, Optional
+from typing import Callable
+from typing import  Optional
 
 import sys
 import os
@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 from costum_typing import  GradModel, Seed, VectorType
 from scipy import optimize
-import hmc
+from hmc import HMCDiag
 
 DensityFunction = Callable[[VectorType], float]
 Kernel = Callable[[VectorType, DensityFunction], ArrayLike]
@@ -22,7 +22,7 @@ Kernel = Callable[[VectorType, DensityFunction], ArrayLike]
 class SaveIntermediateValues:
     '''the optimization path from L-BFGS(or other method) including all parameter values visited during optimization"""
     '''
-    def __init__(self, obj_f_and_grad):
+    def __init__(self, obj_f_and_grad) -> None:
         self.intermediate_fun_vals = []
         self.intermediate_sols = []
         self.intermediate_grad_vals = []
@@ -73,7 +73,7 @@ class OptimPath:
     def get_objective_function_grad(self):
          return  self._minus_log_density_grad
     def update_init_from_hmc(self, stepsize, steps):
-        hmc =  hmc(model= self._log_density_grad,
+        hmc =  HMCDiag(model= self._log_density_grad,
                 stepsize = stepsize,
                 steps = steps,
                 init  = self._init_point,
@@ -89,7 +89,6 @@ class OptimPath:
         if (self._explore_hmc_from_initial):
             self.update_init_from_hmc(stepsize = 0.005, steps = 800 )
         else:
-
             Y = 	np.zeros((1, self._n_dim +1))
             Y[0][0:self._n_dim] = self._init_point
             init_log_dens, init_grad = self._minus_log_density_grad(self._init_point)
@@ -98,7 +97,6 @@ class OptimPath:
                 Y[0][0:self._n_dim] = self.reinitialize()
 
             init_tuple = self._minus_log_density_grad(self._init_point)
-
             cb = SaveIntermediateValues(self._minus_log_density_grad)
 
             opt_result = sp.optimize.minimize(fun = self._minus_log_density_grad, x0 = self._init_point, method = method,
@@ -117,7 +115,6 @@ class OptimPath:
 
             X = np.concatenate((np.matrix(self._init_point), X))
             G = np.concatenate((np.matrix(init_grad), G))
-
 
             Ykt = X[1:, :] - X[:-1,:]
             Skt = G[1:, :] - G[:-1,:]

@@ -1,7 +1,6 @@
 import numpy as np
 import scipy  as sp
-from numpy.typing import NDArray
-from typing import Iterator, Optional
+
 from typing import List, Optional, Tuple
 from costum_typing import  GradModel, Seed, VectorType
 from itertools import compress
@@ -13,12 +12,13 @@ class PathApproximation:
                 n_dim: int,
                 minus_log_density_grad: GradModel,
                 x_centers,
-                Ykts:List[VectorType],#history of parmeter updates along optimization trajectory
+                Ykts:List[VectorType],#history of parameter updates along optimization trajectory
                 Skts:List[VectorType],#history of updates of gradients along optimization trajectory
                 list_flags: List,
                 num_samples_estimate_div: int = 5,
                 J :int = 6,# size of history to approximate  the inverse Hessian
-                E: VectorType = None#initial  values of the diagonal matrix of the  inverse Hessian
+                E: VectorType = None#initial  values of the vector in  the diagonal matrix of the  inverse
+                 # Hessian at the initial point
                 ):
       self._Ykts = Ykts
       self._Skts = Skts
@@ -129,7 +129,6 @@ class PathApproximation:
             print(e)
             label = "ill_formed"
 
-
         return {"label": label,
                 "x_center": x_center,
                 "log_det_cholesky_Hk": log_det_cholesky_Hk,
@@ -190,12 +189,11 @@ class PathApproximation:
        if (np.isnan(DIV) or (np.isinf(DIV))):
          DIV  = -np.Inf
 
-
-       return {"DIV": DIV,
+       return   {"DIV": DIV,
                 "repeat_draws": repeat_draws,
                 "fn_draws": fn_draws,
-                 "approximation_info": approximation_info,
-                 "lp_approx_draws": lp_approx_draws}
+                "approximation_info": approximation_info,
+                "lp_approx_draws": lp_approx_draws}
     def estimate_div(self,
                      n_samples: int) -> List[dict]:
 
@@ -218,14 +216,14 @@ class PathApproximation:
         a = (sum(E0 * update_theta ** 2) / Dk)
         E = 1 / (a / E0 + update_theta ** 2 / Dk - a * (update_grad / E0) ** 2 / sum(update_grad ** 2 / E0))
         return E
-    def get_best_approximation(self):
+    def get_best_approximation(self) -> Tuple:
         list_DIVs = [ap_DIV["DIV"] for ap_DIV in self._list_approximations_with_DIV]
         pos_max = np.max(list_DIVs)
         return(pos_max, self._list_approximations_with_DIV[pos_max])
 
     def sample_from_approximation(self,
                                   pos:int,
-                                  n_samples:int  ) -> dict:
+                                  n_samples:int ) -> dict:
 
         if (pos<0 or pos >= len(self._list_approximations_with_DIV)):
             return None
@@ -233,25 +231,25 @@ class PathApproximation:
         approximation_with_DIV  = self._list_approximations_with_DIV[pos]
         approximation_info = approximation_with_DIV["approximation_info"]
 
-        approximation_info = self._list_approximations[pos]
-        if (approximation_info["label"] == "ill_formed"):
+
+        if (approximation_with_DIV is None) or (approximation_info["label"] == "ill_formed"):
             return None
         else:
-            draw_idx = 0
+            approximation_info = self._list_approximations[pos]
+
             u = np.matrix(np.random.normal(size=self._n_dim* n_samples).reshape(self._n_dim, n_samples))
-
             if (approximation_info["label"] == "full"):
+                tcholesky_Hk = approximation_info["cholesky_Hk"].T
+                u2 = tcholesky_Hk.dot(u) + approximation_info["x_center"]
                 cholesky_Hk = approximation_info["cholesky_Hk"]
-                u2 = cholesky_Hk.dot(u) + approximation_info["x_center"]
             else:  # approximation_info["label"] == "sparse"
+                tQk = approximation_info["Qk"].T
                 Qk = approximation_info["Qk"]
-                u1 = Qk.dot(u)
-                temp = Qk.dot(approximation_info["Rk_tilde"].dot(u1)) + (u - Qk.dot(u1)) + approximation_info[
-                        "x_center"]
-                u2 = np.diag(np.sqrt(1.0 / approximation_info["theta_D"])) * temp
-
-
-
+                u1 = tQk.dot(u)
+                tRktilde = approximation_info["Rk_tilde"].T
+                temp = Qk.dot(tRktilde.dot(u1)) + (u - Qk.dot(u1))
+                x = np.sqrt(1.0 / approximation_info["theta_D"])
+                u2 = np.diag(x).dot(temp) + approximation_info["x_center"].T
 
             lp_approx_draws = - approximation_info["log_det_cholesky_Hk"] - 0.5 * sum(
                         u ** 2) - 0.5 * self._n_dim * np.log(2 * np.pi)
@@ -260,7 +258,9 @@ class PathApproximation:
                     "lp_draws": lp_approx_draws}
 
 
-       
+    def extract_list_approximations(self):
+        pass
+        # TODO
 
   
   

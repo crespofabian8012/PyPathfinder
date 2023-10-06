@@ -1,11 +1,15 @@
 import numpy as np
 from typing import List, Optional, Tuple
+from typing import Protocol, Sequence, Tuple, Union
+from numpy.typing import ArrayLike, NDArray,VectorType
+
+MultivariateNormalDistrib = Union[VectorType, NDArray(float, dim=2)]
 class Mixture:
     # mixture of Gaussian Approximate distributions with associated weights
 
     def __init__(self,
-                 list_distrib: List,
-                 list_weights: List = None
+                 list_distrib: List[MultivariateNormalDistrib],
+                 list_weights: VectorType = None
                  ):
 
         self._list_qs = list_distrib
