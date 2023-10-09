@@ -44,7 +44,7 @@ class PathApproximation(ApproximationModel):
       self._list_approximations_with_DIV = self.estimate_div(self._num_samples_estimate_div)
 
     def dims(self):
-        return self.
+        return self._n_dim
 
     def init_diag_inv_hessian_approximations(self) -> VectorType:
         res = [None] * self._trajectory_length
@@ -265,7 +265,7 @@ class PathApproximation(ApproximationModel):
                     "lp_draws": lp_approx_draws}
 
 
-    def extract_list_approximations(self):
+    def extract_list_approximations(self) -> List[ApproximationModel]:
 
         filtered_approx = [approx if (approx is not None) and (approx["approximation_info"]["label"] != "ill_formed")
                            else None for approx in self._list_approximations_with_DIV]
@@ -273,12 +273,38 @@ class PathApproximation(ApproximationModel):
 
         return result_list
 
+    def get_positions_valid_approximations(self) -> VectorType:
+
+        filtered_approx = [approx if (approx is not None) and (approx["approximation_info"]["label"] != "ill_formed")
+                           else None for approx in self._list_approximations_with_DIV]
+
+        positions = [i for i in range(len(filtered_approx)) if filtered_approx[i] != None]
+
+        return positions
+
     def log_density(self, params_unc: VectorType) -> float:
         pass
+
     def sample(self, n: int,  seed: Optional[Seed] = None ) -> VectorType[DrawAndLogP]:
 
-        if (self._rng is None):
+        if (self._rng is None) and (seed is not None):
             self._rng = np.random.default_rng(seed)
+
+        valid_positions = self.get_positions_valid_approximations()
+        n_samples = n // len(valid_positions)
+        result = []
+        for pos in valid_positions:
+            res = self.sample_from_approximation(pos, n_samples)
+            if (res is None):
+                continue
+            else:
+                samples = res["samples"]
+                lp_draws = res["lp_draws"]
+                result = result.extend(list(zip(samples, lp_draws)))
+        return result
+
+
+
 
 
 
