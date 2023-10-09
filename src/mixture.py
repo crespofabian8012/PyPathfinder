@@ -5,6 +5,7 @@ from costum_typing import  GradModel, Seed, VectorType
 from approximation_model import ApproximationModel
 from numpy.random import choice
 from random import choices
+from collections import Counter
 class Mixture:
     # mixture of  approximate distributions models with associated weights
 
@@ -34,8 +35,8 @@ class Mixture:
     def sample(self,  n: int,
                 seed: Optional[Seed] = None) -> VectorType[DrawAndLogP]:
 
-        approximation_draws = choices(population =self._list_approxs, n,
-                      woights=self._list_weights)
-        samples = [approx.sample() for approx in approximation_draws]
+        positions_draws = choices(self._list_approxs, woights=self._list_weights, k=n)
+        count_dict = dict(Counter(positions_draws))
+        samples = [(self._list_approxs[i]).sample(n_sample, seed) for i, n_sample in count_dict.items()]
 
         return samples

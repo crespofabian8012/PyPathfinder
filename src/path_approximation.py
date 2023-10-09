@@ -6,6 +6,8 @@ from costum_typing import  GradModel, Seed, VectorType
 from itertools import compress
 from approximation_model import ApproximationModel
 from costum_typing import DrawAndLogP
+from random import choices
+from collections import Counter
 
 class PathApproximation(ApproximationModel):
 
@@ -290,17 +292,28 @@ class PathApproximation(ApproximationModel):
         if (self._rng is None) and (seed is not None):
             self._rng = np.random.default_rng(seed)
 
-        valid_positions = self.get_positions_valid_approximations()
-        n_samples = n // len(valid_positions)
+         = self.get_positions_valid_approximations()
+        n_samples = nvalid_positions // len(valid_positions)
         result = []
-        for pos in valid_positions:
+
+        positions_draws = choices(valid_positions, weights=list(np.full(len(valid_positions), 1.0 /len(valid_positions))), k=n)
+        count_dict = dict(Counter(positions_draws))
+
+        for pos, n_samples in count_dict.items():
+
             res = self.sample_from_approximation(pos, n_samples)
+
             if (res is None):
                 continue
             else:
                 samples = res["samples"]
                 lp_draws = res["lp_draws"]
-                result = result.extend(list(zip(samples, lp_draws)))
+                result = result.extend(list(zip(samples, lp_draws, pos)))
+        #TODO
+        #loop over samples and evaluate the log density of the other a valid approximations to
+        #get the log density of the mixture approximation
+
+
         return result
 
 

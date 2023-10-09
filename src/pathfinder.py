@@ -5,6 +5,7 @@ from costum_typing import  GradModel, Seed, VectorType
 from typing import Iterator, Optional
 import numpy as np
 from importance_sampling import importance_sample
+from path_approximation import PathApproximation
 def pathfinder(num_paths: int,
                n_dim: int,
                init_bound: float,
@@ -22,12 +23,16 @@ def pathfinder(num_paths: int,
     objective_fun = optim_paths[0].get_objective_function_grad()
 
     path_approximations = []
-    # path_approximations = [PathApproximation(n_dim=n_dim,
-    #                                 x_centers=X,
-    #                                 minus_log_density_grad=objective_fun,
-    #                                 Ykts=Ykt_history,
-    #                                 Skts=Skt_history,
-    #                                 list_flags=list_flags) for zip() ]
+
+    for i in range(path_trajectories):
+        X, G, F, Ykt_history, Skt_history, list_flags = path_trajectories[i]
+        path_approx= PathApproximation(n_dim=n_dim,
+                                       x_centers=X,
+                                       minus_log_density_grad=objective_fun,
+                                       Ykts=Ykt_history,
+                                       Skts=Skt_history,
+                                       list_flags=list_flags)
+        path_approximations.append(path_approx)
 
     aprox_model = Mixture( list_approxs=path_approximations)
     imp_sample = importance_sample(n_approx_draws=n_approx_draws,
