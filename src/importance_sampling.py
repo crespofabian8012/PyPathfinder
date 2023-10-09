@@ -3,28 +3,32 @@ from numpy.typing import NDArray
 from typing import Iterator, Optional
 from typing import List, Optional, Tuple
 
-from .costum_typing import LogDensityModel
-from .costum_typing import DrawAndLogP, GradModel, Seed, VectorType
+from costum_typing import LogDensityModel
+from costum_typing import DrawAndLogP, GradModel, Seed, VectorType
+from approximation_model import ApproximationModel
+from optimization_path import OptimPath
+from  psis import sumlogs, psislw
+from random import choices
+def importance_sample( n_approx_draws: int,
+                       n_draws: int,
+                       log_density_grad: GradModel,
+                       approx_model: ApproximationModel,
+                       seed: Optional[Seed] = None,
+                       pareto_smoothed = False):
 
-class ImportanceSampling:
+    rng = np.random.default_rng(seed)
+    draws = [approx_model.sample(n_approx_draws, seed) for i in range(n_approx_draws)]
+
+    log_weights  = [log_density_grad.log_density(x)-approx_model.log_density(x) for x in draws["samples"]]
+
+    if (pareto_smoothed):
+        weights = psislw(log_weights)
+
+    weights = np.exp(log_weights) / np.exp(sumlogs(log_weights))
+    idxs = choices(population=draws, n_draws,
+                      woights=weights)
+
+    return draws[idxs]
+
+
      
-
-    def __init__(self,
-                 target_distrib, 
-                 list_proposal_distrib: List,
-                 seed: Optional[Seed] = None,
-                 use_Pareto_smoothing: bool = False
-                 ):
-      self._list_proposal_distrib = list_proposal_distrib
-      self._N = list_proposal_distrib.shape[0]
-      self._rng = np.random.default_rng(seed)
-
-    def sample(self) -> VectorType:
-       pass
-      #TODO
-      #use rng to resample from proposal distributions
-      
-
-
-    def importance_resample(self) -> VectorType:
-        pass

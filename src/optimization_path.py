@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 from costum_typing import  GradModel, Seed, VectorType
 from scipy import optimize
-from hmc import HMCDiag
+
 
 DensityFunction = Callable[[VectorType], float]
 Kernel = Callable[[VectorType, DensityFunction], ArrayLike]
@@ -72,23 +72,11 @@ class OptimPath:
   
     def get_objective_function_grad(self):
          return  self._minus_log_density_grad
-    def update_init_from_hmc(self, stepsize, steps):
-        hmc =  HMCDiag(model= self._log_density_grad,
-                stepsize = stepsize,
-                steps = steps,
-                init  = self._init_point,
-                seed = self._seed
-               )
-        theta, logp = hmc.sample()
-        self._init_point = theta
-        self._logp = logp
+
 
     def optim_path(self, method= "L-BFGS-B"):
      # or method ='L-BFGS-B', "trust-ncg", ‘Nelder-Mead’, ‘trust-exact’ ,‘trust-constr’,‘trust-krylov’
 
-        if (self._explore_hmc_from_initial):
-            self.update_init_from_hmc(stepsize = 0.005, steps = 800 )
-        else:
             Y = 	np.zeros((1, self._n_dim +1))
             Y[0][0:self._n_dim] = self._init_point
             init_log_dens, init_grad = self._minus_log_density_grad(self._init_point)

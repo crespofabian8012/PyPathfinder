@@ -5,8 +5,10 @@ from typing import List, Optional, Tuple
 from costum_typing import  GradModel, Seed, VectorType
 from itertools import compress
 import random
+from approximation_model import ApproximationModel
+from costum_typing import DrawAndLogP
 
-class PathApproximation:
+class PathApproximation(ApproximationModel):
 
     def __init__(self,
                 n_dim: int,
@@ -17,8 +19,9 @@ class PathApproximation:
                 list_flags: List,
                 num_samples_estimate_div: int = 5,
                 J :int = 6,# size of history to approximate  the inverse Hessian
-                E: VectorType = None#initial  values of the vector in  the diagonal matrix of the  inverse
+                E: VectorType = None, #initial  values of the vector in  the diagonal matrix of the  inverse
                  # Hessian at the initial point
+                seed: Optional[Seed] = None
                 ):
       self._Ykts = Ykts
       self._Skts = Skts
@@ -26,6 +29,8 @@ class PathApproximation:
       self._list_flags = list_flags
       self._J = J
       self._num_samples_estimate_div = num_samples_estimate_div
+      self._rng = np.random.default_rng(seed)
+
 
       if (E is None):
         self._E = np.full(n_dim, 1.0)
@@ -37,7 +42,10 @@ class PathApproximation:
 
       self._list_diag_inv_hessian_approximations = self.init_diag_inv_hessian_approximations()
       self._list_approximations = self.init_approximations()
-      self._list_approximations_with_DIV= self.estimate_div(self._num_samples_estimate_div)
+      self._list_approximations_with_DIV = self.estimate_div(self._num_samples_estimate_div)
+
+    def dims(self):
+        return self.
 
     def init_diag_inv_hessian_approximations(self) -> VectorType:
         res = [None] * self._trajectory_length
@@ -259,9 +267,21 @@ class PathApproximation:
 
 
     def extract_list_approximations(self):
-        pass
-        # TODO
 
-  
+        filtered_approx = [approx if (approx is not None) and (approx["approximation_info"]["label"] != "ill_formed")
+                           else None for approx in self._list_approximations_with_DIV]
+        result_list = list(filter(lambda x: x is not None, filtered_approx))
+
+        return result_list
+
+    def log_density(self, params_unc: VectorType) -> float:
+        pass
+    def sample(self, n: int,  seed: Optional[Seed] = None ) -> VectorType[DrawAndLogP]:
+
+        if (self._rng is None):
+            self._rng = np.random.default_rng(seed)
+
+
+
   
   
