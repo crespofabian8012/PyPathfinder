@@ -1,5 +1,5 @@
 import numpy as np
-import scipy  as sp
+import scipy as sp
 
 from numpy.typing import NDArray
 from numpy.typing import ArrayLike
@@ -48,8 +48,8 @@ class OptimPath:
                init_point: VectorType,
                init_bound: float,#initial bound of random initials for each dimension
                log_density_grad: GradModel,
-               number_iter: int,
-               explore_hmc_from_initial: bool, # if TRUE, generate Hamiltonian search path from initials and reinitialize 
+               number_iter: int = 1000,
+               explore_hmc_from_initial: bool = False, # if TRUE, generate Hamiltonian search path from initials and reinitialize
                #the optimization path randomly along the search path
                J: int = 6,# number of points used to calculate the
                seed: Optional[Seed] = None):

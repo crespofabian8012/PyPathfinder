@@ -1,7 +1,5 @@
 import numpy as np
 from typing import List, Optional, Tuple
-from typing import Protocol, Sequence, Tuple, Union
-from numpy.typing import ArrayLike, NDArray
 from costum_typing import DrawAndLogP
 from costum_typing import  GradModel, Seed, VectorType
 from approximation_model import ApproximationModel
@@ -39,4 +37,5 @@ class Mixture:
         approximation_draws = choices(population =self._list_approxs, n,
                       woights=self._list_weights)
         samples = [approx.sample() for approx in approximation_draws]
+
         return samples

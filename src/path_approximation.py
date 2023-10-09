@@ -4,7 +4,6 @@ import scipy  as sp
 from typing import List, Optional, Tuple
 from costum_typing import  GradModel, Seed, VectorType
 from itertools import compress
-import random
 from approximation_model import ApproximationModel
 from costum_typing import DrawAndLogP
 

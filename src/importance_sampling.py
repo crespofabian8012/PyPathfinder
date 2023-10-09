@@ -1,12 +1,11 @@
 import numpy as np
-from numpy.typing import NDArray
-from typing import Iterator, Optional
+
 from typing import List, Optional, Tuple
 
 from costum_typing import LogDensityModel
 from costum_typing import DrawAndLogP, GradModel, Seed, VectorType
 from approximation_model import ApproximationModel
-from optimization_path import OptimPath
+
 from  psis import sumlogs, psislw
 from random import choices
 def importance_sample( n_approx_draws: int,
