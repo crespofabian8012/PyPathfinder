@@ -24,8 +24,7 @@ def importance_sample( n_approx_draws: int,
         weights = psislw(log_weights)
 
     weights = np.exp(log_weights) / np.exp(sumlogs(log_weights))
-    idxs = choices(population=draws, n_draws,
-                      woights=weights)
+    idxs = choices(population=draws, n_draws, woights=weights)
 
     return draws[idxs]
 

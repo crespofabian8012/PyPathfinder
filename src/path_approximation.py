@@ -8,7 +8,9 @@ from approximation_model import ApproximationModel
 from costum_typing import DrawAndLogP
 from random import choices
 from collections import Counter
-
+from scipy.special import logsumexp
+from psis import psislw
+from numpy.random import choice
 class PathApproximation(ApproximationModel):
 
     def __init__(self,
@@ -285,6 +287,7 @@ class PathApproximation(ApproximationModel):
         return positions
 
     def log_density(self, params_unc: VectorType) -> float:
+        # TODO
         pass
 
     def sample(self, n: int,  seed: Optional[Seed] = None ) -> VectorType[DrawAndLogP]:
@@ -292,13 +295,17 @@ class PathApproximation(ApproximationModel):
         if (self._rng is None) and (seed is not None):
             self._rng = np.random.default_rng(seed)
 
-         = self.get_positions_valid_approximations()
+        valid_positions = self.get_positions_valid_approximations()
+        nvalid_positions = len(valid_positions)
         n_samples = nvalid_positions // len(valid_positions)
         result = []
 
-        positions_draws = choices(valid_positions, weights=list(np.full(len(valid_positions), 1.0 /len(valid_positions))), k=n)
+        positions_draws = choices(valid_positions, weights=list(np.full(len(valid_positions), 1.0 / len(valid_positions))), k=n)
         count_dict = dict(Counter(positions_draws))
 
+        lp_approx_M =  np.zeros((nvalid_positions*n_samples, nvalid_positions )) #(0, nrow=J * ns, ncol=J)
+        lrms = []
+        all_samples = []
         for pos, n_samples in count_dict.items():
 
             res = self.sample_from_approximation(pos, n_samples)
@@ -308,13 +315,35 @@ class PathApproximation(ApproximationModel):
             else:
                 samples = res["samples"]
                 lp_draws = res["lp_draws"]
-                result = result.extend(list(zip(samples, lp_draws, pos)))
-        #TODO
-        #loop over samples and evaluate the log density of the other a valid approximations to
-        #get the log density of the mixture approximation
 
+                for posApprox, n_samplesApprox in count_dict.items():
+                  approximation_info = self._list_approximations[posApprox]
+                  if (pos == posApprox):
+                      lp_approx_M[((pos-1)*n_samples + 1):(pos * n_samples), posApprox] = lp_draws[posApprox]
+                  else:
 
-        return result
+                    if (approximation_info["label"] == "full"):
+                      u = np.linalg.solve(approximation_info["cholesky_Hk"].T, samples - approximation_info["x_center"])
+                      lps_tem = - approximation_info["log_det_cholesky_Hk"] - 0.5 * sum(u ** 2) - 0.5 * self._n_dim * np.log(2 * np.pi)
+                    else:  # approximation_info["label"] == "sparse"
+                      u1 = (samples - approximation_info["x_center"]) * np.sqrt(approximation_info["theta_D"])
+                      tQk = approximation_info["Qk"].T
+                      u2 = tQk.dot(u1)
+                      norm_u = sum(np.linalg.solve(approximation_info["Rktilde"].T, u2) ^ 2) + sum(u1 ^ 2) - sum(u2 ^ 2)
+                      lps_tem = - approximation_info["log_det_cholesky_Hk"] - 0.5 * norm_u - 0.5 * self._n_dim * np.log(2 * np.pi)
+                    lp_approx_M[((pos-1)*n_samples + 1):(pos * n_samples), posApprox] = lps_tem
+
+                lp_approx = np.apply_along_axis(logsumexp, 1, lp_approx_M)# apply(lp_approx_M, 1, logSumExp) by rows
+                lrms.append(lp_draws - lp_approx)
+                result = result.extend(list(zip(samples, lp_draws - lp_approx, pos)))
+                all_samples = all_samples.extend(samples)
+
+        # weight samples using psis and sample accordingly
+        sample_weights = psislw(lrms, overwrite_lw=False)
+
+        sample_idxs = choice(range(len(sample_weights)), size=n, replace=True,  p=sample_weights)
+
+        return result[sample_idxs]
 
 
 

@@ -35,7 +35,7 @@ class Mixture:
     def sample(self,  n: int,
                 seed: Optional[Seed] = None) -> VectorType[DrawAndLogP]:
 
-        positions_draws = choices(self._list_approxs, woights=self._list_weights, k=n)
+        positions_draws = choices(self._list_approxs, weights=self._list_weights, k=n)
         count_dict = dict(Counter(positions_draws))
         samples = [(self._list_approxs[i]).sample(n_sample, seed) for i, n_sample in count_dict.items()]
 
